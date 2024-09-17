@@ -3,12 +3,15 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  },
   "scripts": {
     "format:check": "prettier --check .",
     "format:write": "prettier --write .",
     "lint:check": "eslint .",
     "lint:fix": "eslint --fix .",
-    "start": "node ./bin/www",
+    "start": "node app.js",
     "devstart": "nodemon ./bin/www",
     "serverstart": "DEBUG=express-locallibrary-tutorial:* npm run devstart"
   },
@@ -17,18 +20,19 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.19.1",
+    "bcryptjs": "^2.4.3",
     "connect-pg-simple": "^9.0.1",
     "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
     "eslint-config-prettier": "^9.1.0",
     "express": "^4.19.2",
     "express-async-handler": "^1.2.0",
     "express-session": "^1.18.0",
     "express-validator": "^7.1.0",
     "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
     "luxon": "^3.4.4",
     "passport": "^0.7.0",
-    "passport-google-oauth": "^2.0.0",
+    "passport-jwt": "^4.0.1",
     "passport-local": "^1.0.0",
     "pg": "^8.12.0",
     "prisma": "^5.19.1"
@@ -39,6 +43,8 @@
     "eslint-config-airbnb": "^19.0.4",
     "eslint-plugin-import": "^2.29.1",
     "eslint-plugin-jsx-a11y": "^6.9.0",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
     "globals": "^15.8.0",
     "nodemon": "^3.1.4",
     "prettier": "^3.3.3"
