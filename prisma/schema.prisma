@@ -15,8 +15,9 @@ datasource db {
 
 model User {
   id       String        @id @default(uuid())
-  mail     String        @unique
+  email    String        @unique
   name     String
+  hash     String
   sessions GameSession[]
   rank     Int
 }
