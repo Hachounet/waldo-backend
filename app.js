@@ -2,12 +2,15 @@ const dotenv = require("dotenv");
 dotenv.config();
 const errorMessages = require("./errorMessages");
 const express = require("express");
+const { PrismaClient } = require("@prisma/client");
+const cron = require("node-cron");
 const path = require("path");
 const helmet = require("helmet");
 const cors = require("cors");
 
 const indexRouter = require("./routes/indexRouter");
 
+const prisma = new PrismaClient(); // Only for deleting inactive sessions
 const app = express();
 
 const corsOptions = {
@@ -29,6 +32,30 @@ app.use(passport.initialize());
 
 app.use("/", indexRouter);
 
+// Function to check and delete inactive sessions
+async function cleanInactiveSessions() {
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+  try {
+    const deletedSessions = await prisma.gameSession.deleteMany({
+      where: {
+        endTime: null,
+        startTime: {
+          lt: thirtyMinutesAgo,
+        },
+      },
+    });
+    console.log(`${deletedSessions.count} sessions deleted for inactivity.`);
+  } catch (err) {
+    console.error("Error while deleting inactive sessions :", err);
+  }
+}
+// Check inactive sessions when server start
+cleanInactiveSessions();
+
+// Check again every 30 minutes
+cron.schedule("*/30 * * * *", async () => {
+  await cleanInactiveSessions();
+});
 // Err handling
 
 app.use((err, req, res, next) => {

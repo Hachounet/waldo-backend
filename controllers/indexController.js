@@ -173,6 +173,8 @@ exports.postStartGame = asyncHandler(async (req, res, next) => {
 });
 
 exports.postCharacters = asyncHandler(async (req, res, next) => {
+  console.log(req.body);
+
   const character = await prisma.characters.findUnique({
     where: {
       name: req.body.characterName,
@@ -222,12 +224,17 @@ exports.postCharacters = asyncHandler(async (req, res, next) => {
           },
         },
       });
-      return res
-        .status(200)
-        .json({ endOfGame: true, time: elapsedTimeInSeconds });
+      return res.status(200).json({
+        endOfGame: true,
+        time: elapsedTimeInSeconds,
+        characterFound: true,
+        characterName: character,
+      });
     }
 
-    return res.status(200).json({ characterFound: true });
+    return res
+      .status(200)
+      .json({ characterFound: true, characterName: character });
   } else {
     return res.status(200).json({ characterFound: false });
   }

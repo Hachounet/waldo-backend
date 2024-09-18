@@ -1,7 +1,7 @@
 // Authentication with custom account (JWT) for save user in leaderboard
 
 const { ExtractJwt, Strategy } = require("passport-jwt");
-const { PrismaClient } = require("@prisma/client/");
+const { PrismaClient } = require("@prisma/client");
 const passport = require("passport");
 
 const prisma = new PrismaClient();

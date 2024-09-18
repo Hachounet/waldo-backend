@@ -30,7 +30,7 @@ model GameSession {
   elapsedTime     Int?
   playerId        String?
   player          User?     @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  charactersFound Int
+  charactersFound Int       @default(0)
 }
 
 model Characters {
