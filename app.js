@@ -12,9 +12,13 @@ const indexRouter = require("./routes/indexRouter");
 const prisma = new PrismaClient(); // Only for deleting inactive sessions
 const app = express();
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS.split(",") || ["*"];
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : ["*"];
+
 const corsOptions = {
   origin: (origin, callback) => {
+    // Autorise les requêtes sans origine (par exemple Postman ou requêtes serveur à serveur)
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
       callback(null, true);
     } else {
