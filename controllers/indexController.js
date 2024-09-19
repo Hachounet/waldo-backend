@@ -2,8 +2,6 @@ const { PrismaClient } = require("@prisma/client");
 const prisma = new PrismaClient();
 const asyncHandler = require("express-async-handler");
 const { validationResult, body } = require("express-validator");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
 const errorMessages = require("../errorMessages");
 
 function checkForJSAttack(value) {
@@ -18,7 +16,7 @@ function checkForJSAttack(value) {
   return true;
 }
 
-const validateSignUp = [
+const validatePseudo = [
   body("pseudo")
     .trim() // Delete white space
     .notEmpty()
@@ -26,144 +24,67 @@ const validateSignUp = [
     .isLength({ min: 3, max: 20 })
     .withMessage(`Pseudo ${errorMessages.LENGTH_3_TO_20}`)
     .custom(checkForJSAttack),
-  body("email")
-    .trim()
-    .escape()
-    .notEmpty()
-    .withMessage(`Email ${errorMessages.NOT_EMPTY}`)
-    .normalizeEmail()
-    .isEmail()
-    .withMessage(`${errorMessages.MAIL_FORMAT}`),
-  body("pw")
-    .notEmpty()
-    .withMessage(`Password ${errorMessages.NOT_EMPTY}`)
-    .trim()
-    .isLength({ min: 6 })
-    .withMessage(`Password ${errorMessages.LENGTH_6}`)
-    .custom(checkForJSAttack)
-    .custom((value, { req }) => {
-      if (value !== req.body.confpw) {
-        throw new Error(errorMessages.PASSWORDS_DO_NOT_MATCH);
-      }
-      return true;
-    }),
 ];
 
-exports.postSignUpPage = [
-  validateSignUp,
+exports.postPseudoPage = [
+  validatePseudo,
   asyncHandler(async (req, res, next) => {
+    const sessionId = req.body.sessionId;
+    const pseudo = req.body.pseudo;
     const errors = validationResult(req);
+
     if (!errors.isEmpty()) {
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const userExists = await prisma.user.findUnique({
-      where: { email: req.body.email },
-    });
-    if (userExists) {
-      return res
-        .status(400)
-        .json({ error: errorMessages.EMAIL_ALREADY_EXISTS });
-    }
-
-    const hashedPassword = await bcrypt.hash(req.body.pw, 10);
-    await prisma.user.create({
+    const pseudoUser = await prisma.gameSession.update({
+      where: { sessionId: sessionId },
       data: {
-        email: req.body.email,
-        pseudo: req.body.pseudo,
-        hash: hashedPassword,
+        pseudo: pseudo,
       },
     });
-    return res
-      .status(200)
-      .json({ success: true, message: "Account successfully created!" });
+    return res.status(200).json({ success: true, pseudoUser: pseudoUser.name });
   }),
 ];
 
-exports.postLoginPage = asyncHandler(async (req, res, next) => {
-  console.log("POST Login Page for:", req.body.email);
+exports.postLeaderboardPage = asyncHandler(async (req, res, next) => {
+  const sessionId = req.body.sessionId;
 
-  const errors = [];
-
-  const user = await prisma.user.findUnique({
-    where: { email: req.body.email },
-  });
-
-  if (!user) {
-    errors.push({ msg: errorMessages.INVALID_EMAIL });
-  }
-
-  let isPasswordValid = true;
-  if (user) {
-    isPasswordValid = await bcrypt.compare(req.body.pw, user.hash);
-    if (!isPasswordValid) {
-      errors.push({ msg: errorMessages.INVALID_PASSWORD });
-    }
-  }
-
-  if (errors.length > 0) {
-    return res.status(400).json({ errors });
-  }
-
-  const accessToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, {
-    expiresIn: "3600000",
-  });
-
-  return res.status(200).json({ message: "User logged in", accessToken });
-});
-
-exports.postNoLoginPage = asyncHandler(async (req, res, next) => {
+  // Find session of player
   const session = await prisma.gameSession.findUnique({
-    where: { sessionId: req.body.sessionId },
-  });
-
-  if (!session) {
-    return res.status(404).json({ message: errorMessages.SESSION_NOT_FOUND });
-  }
-
-  await prisma.gameSession.delete({ where: { sessionId: req.body.sessionId } });
-  return res.json({ sessionDeleted: true });
-});
-
-exports.getLeaderboardPage = asyncHandler(async (req, res, next) => {
-  console.log("GET Leaderboard Page");
-
-  const session = await prisma.gameSession.findUnique({
-    where: { sessionId: req.body.sessionId },
-    include: { player: true },
+    where: { sessionId: sessionId },
   });
 
   if (!session || !session.endTime) {
     return res.status(400).json({ message: errorMessages.INVALID_SESSION });
   }
 
-  const allUsers = await prisma.user.findMany({
-    include: {
-      sessions: {
-        where: {
-          elapsedTime: { not: null }, // Filtrer les sessions terminées
-        },
-      },
+  // Retrieve top 10 sessions for sort
+  const allSessions = await prisma.gameSession.findMany({
+    where: {
+      elapsedTime: { not: null },
     },
+    orderBy: {
+      elapsedTime: "asc",
+    },
+    take: 10,
   });
 
-  const rankedUsers = allUsers
-    .map((user) => {
-      const bestSession = user.sessions.reduce((best, current) => {
-        return !best || current.elapsedTime < best.elapsedTime ? current : best;
-      }, null);
-      return { user, bestSession };
-    })
-    .filter((entry) => entry.bestSession)
-    .sort((a, b) => a.bestSession.elapsedTime - b.bestSession.elapsedTime);
+  const rankedUsers = allSessions.map((session, index) => ({
+    pseudo: session.pseudo,
+    elapsedTime: session.elapsedTime,
+    rank: index + 1,
+  }));
 
-  // Find player rank
-  const playerRank =
-    rankedUsers.findIndex((entry) => entry.user.id === session.playerId) + 1;
+  // Find the player's rank
+  const playerRank = rankedUsers.find(
+    (entry) => entry.pseudo === session.pseudo,
+  );
 
   return res.status(200).json({
     rankedUsers,
-    rank: playerRank,
+    rank: playerRank ? playerRank.rank : null,
+    playerElapsedTime: session.elapsedTime,
   });
 });
 
@@ -185,12 +106,21 @@ exports.postCharacters = asyncHandler(async (req, res, next) => {
     return res.status(404).json({ message: errorMessages.CHARACTER_NOT_FOUND });
   }
 
-  // PosX && posY are scaled and normalized.
   const posX = req.body.posX;
   const posY = req.body.posY;
 
   const withinRangeX = posX >= character.posX - 5 && posX <= character.posX + 5;
   const withinRangeY = posY >= character.posY - 5 && posY <= character.posY + 5;
+
+  const session = await prisma.gameSession.findUnique({
+    where: {
+      sessionId: req.body.sessionId,
+    },
+  });
+
+  if (session.foundCharactersName.includes(character.name)) {
+    return res.status(200).json({ characterFound: false });
+  }
 
   if (withinRangeX && withinRangeY) {
     const updatedSession = await prisma.gameSession.update({
@@ -201,9 +131,9 @@ exports.postCharacters = asyncHandler(async (req, res, next) => {
         charactersFound: {
           increment: 1,
         },
-      },
-      include: {
-        player: true,
+        foundCharactersName: {
+          push: character.name,
+        },
       },
     });
 

@@ -1,15 +1,11 @@
 const { Router } = require("express");
 
 const {
-  postLoginPage,
-  postNoLoginPage,
-  getLeaderboardPage,
+  postLeaderboardPage,
   postStartGame,
   postCharacters,
-  postSignUpPage,
+  postPseudoPage,
 } = require("../controllers/indexController");
-
-const { authenticateJWT } = require("../auth/passport");
 
 const indexRouter = Router();
 
@@ -17,12 +13,8 @@ indexRouter.post("/start", postStartGame);
 
 indexRouter.post("/play", postCharacters);
 
-indexRouter.post("/signup", postSignUpPage);
+indexRouter.post("/pseudo", postPseudoPage);
 
-indexRouter.post("/login", postLoginPage);
-
-indexRouter.post("/nologin", postNoLoginPage);
-
-indexRouter.get("/leaderboard", authenticateJWT, getLeaderboardPage);
+indexRouter.post("/leaderboard", postLeaderboardPage);
 
 module.exports = indexRouter;

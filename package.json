@@ -20,7 +20,6 @@
   "license": "ISC",
   "dependencies": {
     "@prisma/client": "^5.19.1",
-    "bcryptjs": "^2.4.3",
     "connect-pg-simple": "^9.0.1",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
@@ -30,7 +29,6 @@
     "express-session": "^1.18.0",
     "express-validator": "^7.1.0",
     "helmet": "^7.1.0",
-    "jsonwebtoken": "^9.0.2",
     "luxon": "^3.4.4",
     "node-cron": "^3.0.3",
     "passport": "^0.7.0",

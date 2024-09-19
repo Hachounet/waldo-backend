@@ -26,10 +26,6 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, "public")));
 
-require("./auth/passport");
-const passport = require("passport");
-app.use(passport.initialize());
-
 app.use("/", indexRouter);
 
 // Function to check and delete inactive sessions
@@ -56,8 +52,8 @@ cleanInactiveSessions();
 cron.schedule("*/30 * * * *", async () => {
   await cleanInactiveSessions();
 });
-// Err handling
 
+// Err handling
 app.use((err, req, res, next) => {
   if (process.env.NODE_ENV === "development") {
     console.log("Errors details", {
@@ -83,7 +79,7 @@ app.use((err, req, res, next) => {
     }
   }
 
-  // Gestion des erreurs de validation
+  // Validation error handling
   if (err.name === "ValidationError") {
     errorMessage = errorMessages.VALIDATION_ERROR;
   }
