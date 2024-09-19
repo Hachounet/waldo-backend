@@ -5,6 +5,7 @@ const {
   postStartGame,
   postCharacters,
   postPseudoPage,
+  postDeleteInactives,
 } = require("../controllers/indexController");
 
 const indexRouter = Router();
@@ -16,5 +17,7 @@ indexRouter.post("/play", postCharacters);
 indexRouter.post("/pseudo", postPseudoPage);
 
 indexRouter.post("/leaderboard", postLeaderboardPage);
+
+indexRouter.post("/deletesessions", postDeleteInactives);
 
 module.exports = indexRouter;
