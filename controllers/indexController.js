@@ -169,3 +169,20 @@ exports.postCharacters = asyncHandler(async (req, res, next) => {
     return res.status(200).json({ characterFound: false });
   }
 });
+
+exports.postDeleteInactives = asyncHandler(async (req, res, next) => {
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+  const deletedSessions = await prisma.gameSession.deleteMany({
+    where: {
+      endTime: null,
+      startTime: {
+        lt: thirtyMinutesAgo,
+      },
+    },
+  });
+
+  res.status(200).json({
+    message: `${deletedSessions.count} inactives sessions deleted successfully.`,
+  });
+});
